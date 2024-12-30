@@ -1,5 +1,5 @@
-import 'package:example/counter/counter.dart';
 import 'package:example/l10n/l10n.dart';
+import 'package:example/products/views/products_view.dart';
 import 'package:flutter/material.dart';
 
 class App extends StatelessWidget {
@@ -16,7 +16,7 @@ class App extends StatelessWidget {
       ),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      home: const CounterPage(),
+      home: const ProductsView(),
     );
   }
 }
