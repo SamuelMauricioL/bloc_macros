@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:example/products/bloc/products_state.dart';
 import 'package:example/products/entities/product.dart';
 
 part 'products_event.dart';
-part 'products_state.dart';
 
 class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
   ProductsBloc() : super(const ProductsState()) {
@@ -39,6 +39,8 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
           ),
         ],
       );
+
+      products[1].toJson();
 
       emit(state.copyWith(status: ProductsStatus.loaded, products: products));
     } catch (e) {

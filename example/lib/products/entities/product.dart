@@ -1,3 +1,6 @@
+import 'package:json/json.dart';
+
+@JsonCodable()
 class Product {
   const Product({
     required this.id,
