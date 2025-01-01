@@ -9,12 +9,12 @@ class ProductsState extends Equatable {
   const ProductsState({
     this.status = ProductsStatus.loading,
     this.products = const [],
-    this.error = '',
+    this.error,
   });
 
   final ProductsStatus status;
   final List<Product> products;
-  final Object error;
+  final Object? error;
 
   // ProductsState copyWith({
   //   ProductsStatus? status,
