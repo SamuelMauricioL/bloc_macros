@@ -57,6 +57,7 @@ macro class CopyWith implements ClassDeclarationsMacro, ClassDefinitionMacro  {
     final clazzName = clazz.identifier.name;
 
     final type = _checkNamedType(rawType!, builder);
+    // var classDecl = await type?.classDeclaration(builder);
 
     builder.declareInType(
       DeclarationCode.fromString(
@@ -95,10 +96,14 @@ macro class CopyWith implements ClassDeclarationsMacro, ClassDefinitionMacro  {
     final rawCode = RawCode.fromParts([
             ' as ',
           ]);
+    await builder.;
   }
 }
 
 extension on NamedTypeAnnotation {
+  /// Follows the declaration of this type through any type aliases, until it
+  /// reaches a [ClassDeclaration], or returns null if it does not bottom out on
+  /// a class.
   Future<ClassDeclaration?> classDeclaration(DefinitionBuilder builder) async {
     var typeDecl = await builder.typeDeclarationOf(identifier);
     while (typeDecl is TypeAliasDeclaration) {
