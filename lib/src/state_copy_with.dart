@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:collection/collection.dart';
 import 'package:macros/macros.dart';
 
 macro class Props implements ClassDeclarationsMacro {
@@ -23,195 +24,129 @@ macro class Props implements ClassDeclarationsMacro {
   }
 }
 
-macro class CopyWith implements ClassDeclarationsMacro, ClassDefinitionMacro  {
-  const CopyWith();
+// Libraries used in augmented code.
+final dartCore = Uri.parse('dart:core');
+final dataClassMacro = Uri.parse('package:data_class/src/_data_class.dart');
 
-  NamedTypeAnnotation? _checkNamedType(TypeAnnotation type, Builder builder) {
-    if (type is NamedTypeAnnotation) return type;
-    if (type is OmittedTypeAnnotation) {
-      builder.report(Diagnostic(
-          DiagnosticMessage(
-              'Only fields with explicit types are allowed on serializable '
-              'classes, please add a type.',
-              target: type.asDiagnosticTarget),
-          Severity.error));
-    } else {
-      builder.report(Diagnostic(
-          DiagnosticMessage(
-              'Only fields with named types are allowed on serializable '
-              'classes.',
-              target: type.asDiagnosticTarget),
-          Severity.error));
-    }
-    return null;
+// Objects used in augmented code.
+const undefined = Object();
+macro class Copyable implements ClassDeclarationsMacro, ClassDefinitionMacro {
+  /// {@macro copyable}
+  const Copyable();
+
+  @override
+  Future<void> buildDeclarationsForClass(
+    ClassDeclaration clazz,
+    MemberDeclarationBuilder builder,
+  ) {
+    return _declareCopyWith(clazz, builder);
   }
 
   @override
-  FutureOr<void> buildDeclarationsForClass(
+  Future<void> buildDefinitionForClass(
+    ClassDeclaration clazz,
+    TypeDefinitionBuilder builder,
+  ) {
+    return _buildCopyWith(clazz, builder);
+  }
+
+  Future<void> _declareCopyWith(
     ClassDeclaration clazz,
     MemberDeclarationBuilder builder,
   ) async {
-    final fields = await builder.fieldsOf(clazz);
-    final fieldsName = fields.map((f) => f.identifier.name).toList();
-    final rawType = clazz.superclass;
-    final clazzName = clazz.identifier.name;
-
-    final type = _checkNamedType(rawType!, builder);
-    // var classDecl = await type?.classDeclaration(builder);
-
-    builder.declareInType(
-      DeclarationCode.fromString(
-'''
-  $clazzName copyWith({
-    $fieldsName
-  }) {
-    return $clazzName(
-      ${fieldsName.map((e) => '$e: this.$e,').join('\n      ')}
-    );
-  }
-'''
-      ),
-    );
-  }
-  
-  @override
-  FutureOr<void> buildDefinitionForClass(ClassDeclaration clazz, TypeDefinitionBuilder builder) async {
-    final introspectionData = await _SharedIntrospectionData.build(
-      builder,
-      clazz,
-    );
-
-    final fields = introspectionData.fields;
-    final fieldsName = fields.map((f) => _checkNamedType(f.type, builder)).toList();
-    final classDecl = await fieldsName.map((f) => (f?.classDeclaration(builder))).toList();
-
-    // final builderFields = await builder.declarationOf();
-    final fieldsTypeDeclaration = List<String>.empty(growable: true);
-    for (var types in classDecl) {
-      if (types == null) break;
-      final fieldType = (await types)?.identifier.name;
-      if (fieldType == null) break;
-      fieldsTypeDeclaration.add(fieldType);
+    final methods = await builder.fieldsOf(clazz);
+    if (methods.any((c) => c.identifier.name == 'copyWith')) {
+      throw ArgumentError('A copyWith method already exists.');
     }
-    final rawCode = RawCode.fromParts([
-            ' as ',
-          ]);
-    await builder.;
-  }
-}
+    final fields = await builder.allFieldsOf(clazz);
 
-extension on NamedTypeAnnotation {
-  /// Follows the declaration of this type through any type aliases, until it
-  /// reaches a [ClassDeclaration], or returns null if it does not bottom out on
-  /// a class.
-  Future<ClassDeclaration?> classDeclaration(DefinitionBuilder builder) async {
-    var typeDecl = await builder.typeDeclarationOf(identifier);
-    while (typeDecl is TypeAliasDeclaration) {
-      final aliasedType = typeDecl.aliasedType;
-      if (aliasedType is! NamedTypeAnnotation) {
-        builder.report(Diagnostic(
-            DiagnosticMessage(
-                'Only fields with named types are allowed on serializable '
-                'classes',
-                target: asDiagnosticTarget),
-            Severity.error));
-        return null;
-      }
-      typeDecl = await builder.typeDeclarationOf(aliasedType.identifier);
+    // Ensure all class fields have a type.
+    if (fields.any((f) => f.type.checkNamed(builder) == null)) return null;
+    
+    if (fields.isEmpty) {
+      return builder.declareInType(
+        DeclarationCode.fromString(
+          'external ${clazz.identifier.name} Function() get copyWith;',
+        ),
+      );
     }
-    if (typeDecl is! ClassDeclaration) {
-      builder.report(Diagnostic(
+
+    final declaration = DeclarationCode.fromParts(
+      [
+        'external ${clazz.identifier.name} Function({',
+        for (final field in fields)
+          ...[
+            field.type.cast<NamedTypeAnnotation>().identifier,
+            if(field.type.cast<NamedTypeAnnotation>().isNullable) '?',
+            ' ', field.identifier.name,
+            ',',
+          ]
+        ,'}) get copyWith;',
+      ],
+    );
+    
+    return builder.declareInType(declaration);
+  }
+
+  Future<void> _buildCopyWith(
+    ClassDeclaration clazz,
+    TypeDefinitionBuilder builder,
+  ) async {
+    final methods = await builder.methodsOf(clazz);
+    final copyWith = methods.firstWhereOrNull(
+      (m) => m.identifier.name == 'copyWith',
+    );
+    if (copyWith == null) return;
+    final copyWithMethod = await builder.buildMethod(copyWith.identifier);
+    final className = clazz.identifier.name;
+    final docComments = CommentCode.fromString('/// Create a copy of [$className] and replace zero or more fields.');
+
+    final defaultConstructor = await builder.defaultConstructorOf(clazz);
+    if (defaultConstructor == null) {
+      builder.report(
+        Diagnostic(
           DiagnosticMessage(
-              'Only classes are supported as field types for serializable '
-              'classes',
-              target: asDiagnosticTarget),
-          Severity.error));
+            'Class "$className" must have a default constructor',
+            target: clazz.asDiagnosticTarget,
+          ),
+          Severity.error,
+        ),
+      );
       return null;
     }
-    return typeDecl;
-  }
-}
+    
+    final constructorParams = await builder.constructorParamsOf(defaultConstructor, clazz);
+    final params = [
+      ...constructorParams.positional,
+      ...constructorParams.named,
+    ];
 
-final _dartCore = Uri.parse('dart:core');
+    if (params.isEmpty) {
+      return copyWithMethod.augment(
+        FunctionBodyCode.fromParts(['=> ', className, '.new;']),
+        docComments: docComments,
+      );
+    }
 
-final class _SharedIntrospectionData {
-  /// The declaration of the class we are generating for.
-  final ClassDeclaration clazz;
+    // Ensure all constructor params have a type.
+    if (params.any((p) => p.type == null)) return null;
 
-  /// All the fields on the [clazz].
-  final List<FieldDeclaration> fields;
-
-  /// A [Code] representation of the type [List<Object?>].
-  final NamedTypeAnnotationCode jsonListCode;
-
-  /// A [Code] representation of the type [Map<String, Object?>].
-  final NamedTypeAnnotationCode jsonMapCode;
-
-  /// The resolved [StaticType] representing the [Map<String, Object?>] type.
-  final StaticType jsonMapType;
-
-  /// The resolved identifier for the [MapEntry] class.
-  final Identifier mapEntry;
-
-  /// A [Code] representation of the type [Object].
-  final NamedTypeAnnotationCode objectCode;
-
-  /// A [Code] representation of the type [String].
-  final NamedTypeAnnotationCode stringCode;
-
-  /// The declaration of the superclass of [clazz], if it is not [Object].
-  final ClassDeclaration? superclass;
-
-  _SharedIntrospectionData({
-    required this.clazz,
-    required this.fields,
-    required this.jsonListCode,
-    required this.jsonMapCode,
-    required this.jsonMapType,
-    required this.mapEntry,
-    required this.objectCode,
-    required this.stringCode,
-    required this.superclass,
-  });
-
-  static Future<_SharedIntrospectionData> build(
-      DeclarationPhaseIntrospector builder, ClassDeclaration clazz) async {
-    final (list, map, mapEntry, object, string) = await (
-      builder.resolveIdentifier(_dartCore, 'List'),
-      builder.resolveIdentifier(_dartCore, 'Map'),
-      builder.resolveIdentifier(_dartCore, 'MapEntry'),
-      builder.resolveIdentifier(_dartCore, 'Object'),
-      builder.resolveIdentifier(_dartCore, 'String'),
-    ).wait;
-    final objectCode = NamedTypeAnnotationCode(name: object);
-    final nullableObjectCode = objectCode.asNullable;
-    final jsonListCode = NamedTypeAnnotationCode(name: list, typeArguments: [
-      nullableObjectCode,
-    ]);
-    final jsonMapCode = NamedTypeAnnotationCode(name: map, typeArguments: [
-      NamedTypeAnnotationCode(name: string),
-      nullableObjectCode,
-    ]);
-    final stringCode = NamedTypeAnnotationCode(name: string);
-    final superclass = clazz.superclass;
-    final (fields, jsonMapType, superclassDecl) = await (
-      builder.fieldsOf(clazz),
-      builder.resolve(jsonMapCode),
-      superclass == null
-          ? Future.value(null)
-          : builder.typeDeclarationOf(superclass.identifier),
+    final (object, undefined) = await (
+      builder.codeFrom(dartCore, 'Object'),
+      builder.codeFrom(dataClassMacro, 'undefined'),
     ).wait;
 
-    return _SharedIntrospectionData(
-      clazz: clazz,
-      fields: fields,
-      jsonListCode: jsonListCode,
-      jsonMapCode: jsonMapCode,
-      jsonMapType: jsonMapType,
-      mapEntry: mapEntry,
-      objectCode: objectCode,
-      stringCode: stringCode,
-      superclass: superclassDecl as ClassDeclaration?,
+    final body = FunctionBodyCode.fromParts(
+      [
+        '=> ',
+        '({',for (final param in params) ...[object, '? ', param.name, ' = ', undefined, ','],'}) { ',
+        'return ', className,'(',
+        for (final param in params)
+          ...[param.name, ': ', param.name, ' == ', undefined, ' ? this.', param.name, ' : ', param.name, ' as ', param.type.code, ','],');',
+        '};',
+      ],
     );
+
+    return copyWithMethod.augment(body, docComments: docComments);
   }
 }
