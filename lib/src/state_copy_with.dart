@@ -5,7 +5,8 @@ import 'package:macros/macros.dart';
 // Libraries used in augmented code.
 final dartCore = Uri.parse('dart:core');
 final dataClassMacro = Uri.parse('package:data_class/src/_data_class.dart');
-
+// Objects used in augmented code.
+const undefined = Object();
 
 macro class Props implements ClassDeclarationsMacro {
   const Props();
@@ -29,9 +30,6 @@ macro class Props implements ClassDeclarationsMacro {
   }
 }
 
-
-// Objects used in augmented code.
-const undefined = Object();
 macro class Copyable implements ClassDeclarationsMacro, ClassDefinitionMacro {
   /// {@macro copyable}
   const Copyable();
