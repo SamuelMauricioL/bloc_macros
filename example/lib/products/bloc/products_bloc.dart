@@ -40,8 +40,6 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
         ],
       );
 
-      products[1].toJson();
-
       emit(state.copyWith(status: ProductsStatus.loaded, products: products));
     } catch (e) {
       emit(state.copyWith(status: ProductsStatus.error, error: e));

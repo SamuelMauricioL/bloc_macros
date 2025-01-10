@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:example/products/bloc/products_bloc.dart';
 import 'package:example/products/bloc/products_state.dart';
 import 'package:flutter/material.dart';
@@ -31,10 +33,15 @@ class ProductsBody extends StatelessWidget {
               itemCount: state.products.length,
               itemBuilder: (context, i) {
                 final product = state.products[i];
-                return ListTile(
-                  title: Text(product.name),
-                  subtitle: Text(product.description),
-                  trailing: Text('${product.price}'),
+                return GestureDetector(
+                  onTap: () {
+                    log(product.toJson().toString());
+                  },
+                  child: ListTile(
+                    title: Text(product.name),
+                    subtitle: Text(product.description),
+                    trailing: Text('${product.price}'),
+                  ),
                 );
               },
             );
