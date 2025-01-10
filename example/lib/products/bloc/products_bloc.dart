@@ -16,29 +16,31 @@ class ProductsBloc extends Bloc<ProductsEvent, ProductsState> {
     emit(state.copyWith(status: ProductsStatus.loading));
 
     try {
-      final products = await Future.delayed(
-        const Duration(seconds: 1),
-        () => [
-          const Product(
-            id: '1',
-            name: 'Product 1',
-            description: 'Description 1',
-            price: 10,
-          ),
-          const Product(
-            id: '2',
-            name: 'Product 2',
-            description: 'Description 2',
-            price: 20,
-          ),
-          const Product(
-            id: '3',
-            name: 'Product 3',
-            description: 'Description 3',
-            price: 30,
-          ),
-        ],
-      );
+      final mockProducts = [
+        {
+          'id': '1',
+          'name': 'Product 1',
+          'description': 'Description 1',
+          'price': 10,
+        },
+        {
+          'id': '2',
+          'name': 'Product 2',
+          'description': 'Description 2',
+          'price': 20,
+        },
+        {
+          'id': '3',
+          'name': 'Product 3',
+          'description': 'Description 3',
+          'price': 30,
+        },
+      ];
+
+      final products = await Future.delayed(const Duration(seconds: 1), () {
+        // ignore: unnecessary_lambdas
+        return mockProducts.map((p) => Product.fromJson(p)).toList();
+      });
 
       products[1].toJson();
 
