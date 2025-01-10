@@ -29,6 +29,9 @@
         "staging",
         "--target",
         "lib/main_staging.dart"
+      ],
+      "toolArgs": [
+        "--enable-experiment=macros"
       ]
     },
     {
@@ -41,6 +44,9 @@
         "production",
         "--target",
         "lib/main_production.dart"
+      ],
+      "toolArgs": [
+        "--enable-experiment=macros"
       ]
     }
   ]

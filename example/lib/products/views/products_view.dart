@@ -1,4 +1,5 @@
 import 'package:example/products/bloc/products_bloc.dart';
+import 'package:example/products/bloc/products_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -20,9 +21,7 @@ class ProductsBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Products'),
-      ),
+      appBar: AppBar(title: const Text('Products')),
       body: BlocBuilder<ProductsBloc, ProductsState>(
         builder: (context, state) {
           if (state.status == ProductsStatus.loading) {
