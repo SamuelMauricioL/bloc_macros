@@ -28,12 +28,16 @@ macro class Copyable implements ClassDeclarationsMacro, ClassDefinitionMacro {
     ClassDeclaration clazz,
     MemberDeclarationBuilder builder,
   ) async {
+    // 1. Class declaration applied to entry point
     final methods = await builder.fieldsOf(clazz);
     if (methods.any((c) => c.identifier.name == 'copyWith')) {
       throw ArgumentError('A copyWith method already exists.');
     }
+
+    // 2. Get all fields
     final fields = await builder.allFieldsOf(clazz);
 
+    // 3. Get Type Annotations and just get NamedTypeAnnotation
     // Ensure all class fields have a type.
     if (fields.any((f) => f.type.checkNamed(builder) == null)) return null;
     
@@ -50,6 +54,7 @@ macro class Copyable implements ClassDeclarationsMacro, ClassDefinitionMacro {
         'external ${clazz.identifier.name} Function({',
         for (final field in fields)
           ...[
+            // 4. Get Identifier
             field.type.cast<NamedTypeAnnotation>().identifier,
             if(field.type.cast<NamedTypeAnnotation>().isNullable) '?',
             ' ', field.identifier.name,
