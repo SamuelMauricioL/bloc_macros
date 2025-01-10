@@ -1,37 +1,11 @@
-import 'dart:async';
+import 'dart:core';
+
+import 'package:bloc_macros/src/data_class.dart';
+import 'package:bloc_macros/src/macro_extension.dart';
 import 'package:collection/collection.dart';
 import 'package:macros/macros.dart';
 
-// Libraries used in augmented code.
-final dartCore = Uri.parse('dart:core');
-final dataClassMacro = Uri.parse('package:data_class/src/_data_class.dart');
-// Objects used in augmented code.
-const undefined = Object();
-
-macro class Props implements ClassDeclarationsMacro {
-  const Props();
-
-  @override
-  FutureOr<void> buildDeclarationsForClass(
-    ClassDeclaration clazz,
-    MemberDeclarationBuilder builder,
-  ) async {
-    final fields = await builder.fieldsOf(clazz);
-    final fieldsName = fields.map((e) => e.identifier.name).toList().join(', ');
-
-    builder.declareInType(
-      DeclarationCode.fromString(
-'''
-  @override
-  List<Object?> get props => [$fieldsName];
-'''
-      ),
-    );
-  }
-}
-
 macro class Copyable implements ClassDeclarationsMacro, ClassDefinitionMacro {
-  /// {@macro copyable}
   const Copyable();
 
   @override
@@ -142,7 +116,7 @@ macro class Copyable implements ClassDeclarationsMacro, ClassDefinitionMacro {
         '({',for (final param in params) ...[object, '? ', param.name, ' = ', undefined, ','],'}) { ',
         'return ', className,'(',
         for (final param in params)
-          ...[param.name, ': ', param.name, ' == ', undefined, ' ? this.', param.name, ' : ', param.name, ' as ', param.type.code, ','],');',
+          ...[param.name, ': ', param.name, ' == ', undefined, ' ? this.', param.name, ' : ', param.name, ' as ', param.type!.code, ','],');',
         '};',
       ],
     );

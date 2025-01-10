@@ -1,3 +1,0 @@
-class BlocMacros {
-  const BlocMacros();
-}
