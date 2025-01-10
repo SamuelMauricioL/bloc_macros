@@ -40,7 +40,7 @@ macro class Copyable implements ClassDeclarationsMacro, ClassDefinitionMacro {
     if (fields.isEmpty) {
       return builder.declareInType(
         DeclarationCode.fromString(
-          'external ${clazz.identifier.name} Function() get copyWith;',
+          '  external ${clazz.identifier.name} Function() get copyWith;',
         ),
       );
     }
